@@ -39,6 +39,7 @@ def validate_model(dataset_path, model_name='openai/clip-vit-base-patch32'):
     
     accuracy = correct_predictions / total_samples * 100
     logging.info(f"Validation completed. Accuracy: {accuracy:.2f}%")
+    classifier._export_model('minas_flora_classifier_model')
     return accuracy
 
 
