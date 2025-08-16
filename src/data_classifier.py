@@ -30,3 +30,9 @@ class MinasFloraClassifier:
         winner_label = all_labels[winner_idx.item()]
         logging.info(f"Classified image with label: {winner_label}")
         return winner_label
+    
+    
+    def _export_model(self, output_dir):
+        self.model.save_pretrained(output_dir)
+        self.processor.save_pretrained(output_dir)
+        logging.info(f"Model exported to {output_dir}")
