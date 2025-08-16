@@ -4,9 +4,6 @@ from transformers import AutoProcessor, CLIPModel
 import torch
 
 
-from .data_loader import MinasFloraDataset
-
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
@@ -18,7 +15,8 @@ class MinasFloraClassifier:
         
         
     def _get_winner_index(self, x, y):
-        return torch.argmax((x @ y) / (torch.linalg.norm(x) * torch.linalg.norm(y)), dim=-1)
+        cosine_similarity = (x @ y.T) / (torch.linalg.norm(x) * torch.linalg.norm(y, dim=1))
+        return torch.argmax(cosine_similarity)
     
     
     def classify(self, image, all_labels):
