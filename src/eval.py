@@ -20,6 +20,13 @@ class MinasFloraEvaluation:
         
         self.metrics = {label: {"TP": 0, "TN": 0, "FP": 0, "FN": 0} for label in self.dataset.keys()}
         logging.info(f'Metrics initialized {self.metrics}')
+        
+        self._evaluate()
+        
+        for label in self.dataset.keys():
+            self._recall(label)
+            self._precision(label)
+            self._f1_score(label)
 
     def _load_model(self):
         model = CLIPModel.from_pretrained(self.model_path)
@@ -61,37 +68,67 @@ class MinasFloraEvaluation:
             return predicted_label
     
     
-    def evaluate(self):
-        all_labels = self.dataset.keys()
-        logging.info(f'All labels avaliable: {all_labels}')
+    def _evaluate(self):
+        all_labels = list(self.dataset.keys())
+        logging.info(f'All available labels: {all_labels}')
         
-        for label in all_labels:
-            images = self.dataset.get(label)
-            logging.info(f'images: {images}')
+        total_samples = 0
+        for true_label in all_labels:
+            images_paths = self.dataset.get(true_label, [])
+            total_samples += len(images_paths) 
             
-            for image in images:
-                logging.info(f"Evaluating image: {image} for label: {label}")
-                img = Image.open(image)
+            logging.info(f'Evaluating {len(images_paths)} images for the class: {true_label}')
+            
+            for image_path in images_paths:
+                logging.info(f"-> Processing image: {image_path}")
+                img = Image.open(image_path)
                 
                 predicted_label = self._predict(img, all_labels)
-                logging.info(f"Image {image} predicted as {predicted_label}")
-                if predicted_label == label:
-                    self.metrics[label]["TP"] += 1
-                    logging.info(f"True Positive for label {label}.")
+                
+                if predicted_label == true_label:
+                    self.metrics[true_label]["TP"] += 1
                 else:
-                    self.metrics[label]["FP"] += 1
-                    logging.info(f"False Positive for label {label}.")
-                for other_label in all_labels:
-                    if other_label != label:
-                        if predicted_label == other_label:
-                            self.metrics[other_label]["FN"] += 1
-                            logging.info(f"False Negative for label {other_label}.")
-                        else:
-                            self.metrics[other_label]["TN"] += 1
-                            logging.info(f"True Negative for label {other_label}.")
-                logging.info(f"Metrics for label {label}: {self.metrics[label]}")
-
+                    self.metrics[predicted_label]["FP"] += 1
+                    self.metrics[true_label]["FN"] += 1
+        
+        logging.info(f"Completed primary evaluation loop. Total samples: {total_samples}")
+        
+        logging.info("Calculating True Negatives (TN) by derivation...")
+        for label in all_labels:
+            tp = self.metrics[label]["TP"]
+            fp = self.metrics[label]["FP"]
+            fn = self.metrics[label]["FN"]
             
+            tn = total_samples - (tp + fp + fn)
+            self.metrics[label]["TN"] = tn
+            
+        logging.info("--- EVALUATION COMPLETE ---")
+        for label, metric_values in self.metrics.items():
+            logging.info(f"Final Metrics for '{label}': {metric_values}")
+            
+            
+    def _recall(self, label):
+        tp = self.metrics[label]["TP"]
+        fn = self.metrics[label]["FN"]
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        logging.info(f"Recall for {label}: {recall:.4f}")
+        return recall
+
+    def _precision(self, label):
+        tp = self.metrics[label]["TP"]
+        fp = self.metrics[label]["FP"]
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        logging.info(f"Precision for {label}: {precision:.4f}")
+        return precision
+
+    def _f1_score(self, label):
+        precision = self._precision(label)
+        recall = self._recall(label)
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        logging.info(f"F1 Score for {label}: {f1_score:.4f}")
+        return f1_score
+
+
 
 
 if __name__ == "__main__":
@@ -100,6 +137,5 @@ if __name__ == "__main__":
     eval_path = '/home/paulo/Área de Trabalho/repos/Minas-Flora-Classifier/validate-data'
     
     evaluator = MinasFloraEvaluation(model_path, eval_path)
-    evaluator.evaluate()
     logging.info("Evaluation setup complete.")
     
