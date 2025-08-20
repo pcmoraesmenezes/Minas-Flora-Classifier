@@ -33,7 +33,6 @@ class MinasFloraEvaluation:
         return processor, model
     
     def __read_labels(self, label_path):
-        """Reads the full prompt from a label file."""
         if not os.path.exists(label_path):
             raise FileNotFoundError(f"Label file {label_path} does not exist.")
         with open(label_path, 'r') as f:
@@ -41,7 +40,6 @@ class MinasFloraEvaluation:
         return prompt
 
     def _get_class_name_from_path(self, label_path):
-        """Extracts a clean class name from the label file path."""
         basename = os.path.basename(label_path)
         class_name = os.path.splitext(basename)[0]
         return class_name.replace('-', ' ').capitalize()
@@ -83,23 +81,29 @@ class MinasFloraEvaluation:
         if not dataset:
             raise ValueError("No images found in the evaluation path.")
         return dataset, label_map
+
+
+    def _get_winner_index(self, x, y):
+        cosine_similarity = (x @ y.T) / (torch.linalg.norm(x) * torch.linalg.norm(y, dim=1))
+        return torch.argmax(cosine_similarity)
+
     
     def _predict(self, image, all_prompts):
         inputs = self.processor(text=list(all_prompts), images=image, return_tensors="pt", padding=True)
         with torch.no_grad():
-            outputs = self.model(**inputs)
-            logits_per_image = outputs.logits_per_image
-            probs = logits_per_image.softmax(dim=1)
-            predicted_label_idx = probs.argmax().item()
             
-            predicted_prompt = list(all_prompts)[predicted_label_idx]
+            outputs = self.model(**inputs)
+            winner_idx = self._get_winner_index(outputs.image_embeds, outputs.text_embeds)
+            winner_label = all_prompts[winner_idx.item()]
+            logging.info(f"Classified image with label: {winner_label}")
+
             
             prompt_to_class_map = {v: k for k, v in self.label_map.items()}
-            predicted_class_name = prompt_to_class_map[predicted_prompt]
-            
-            logging.info(f"Predicted class: '{predicted_class_name}' with probability {probs[0][predicted_label_idx]:.4f}")
-            return predicted_prompt
-    
+            predicted_class_name = prompt_to_class_map[winner_label]
+
+            logging.info(f"Predicted class: '{predicted_class_name}'")
+            return winner_label
+
     def _evaluate(self):
         all_class_names = list(self.dataset.keys())
         all_prompts = list(self.label_map.values())
