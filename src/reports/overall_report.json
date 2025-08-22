@@ -1,0 +1,1 @@
+{"Overall Accuracy": 0.7391304347826086, "Class-wise Metrics": {"Sibipiruna": {"TP": 2, "TN": 18, "FP": 1, "FN": 2}, "Quasmeira": {"TP": 3, "TN": 17, "FP": 2, "FN": 1}, "Araucaria": {"TP": 6, "TN": 16, "FP": 0, "FN": 1}, "Manaca_da_serra": {"TP": 2, "TN": 18, "FP": 1, "FN": 2}, "Ipe amarelo": {"TP": 4, "TN": 17, "FP": 2, "FN": 0}}}

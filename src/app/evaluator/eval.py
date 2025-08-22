@@ -3,6 +3,7 @@ import torch
 from transformers import CLIPModel, AutoProcessor
 import os
 from PIL import Image
+import json
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -27,11 +28,12 @@ class MinasFloraEvaluation:
             self._recall(class_name)
             self._f1_score(class_name)
 
+
     def _load_model(self):
-        model = CLIPModel.from_pretrained(self.model_path)
-        processor = AutoProcessor.from_pretrained(self.model_path)
+        model = CLIPModel.from_pretrained(self.model_path, local_files_only=True)
+        processor = AutoProcessor.from_pretrained(self.model_path, local_files_only=True)
         return processor, model
-    
+
     def __read_labels(self, label_path):
         if not os.path.exists(label_path):
             raise FileNotFoundError(f"Label file {label_path} does not exist.")
@@ -167,9 +169,32 @@ class MinasFloraEvaluation:
         logging.info(f"F1 Score for {class_name}: {f1_score:.4f}")
         return f1_score
 
+
+    def __calculate_overall_accuracy(self):
+            total_correct = sum(metrics["TP"] for metrics in self.metrics.values())
+            total_samples = sum(len(paths) for paths in self.dataset.values())
+            overall_accuracy = total_correct / total_samples if total_samples > 0 else 0.0
+            logging.info(f"Overall Accuracy: {overall_accuracy:.4f}")
+            return overall_accuracy
+        
+        
+    def __generate_report(self):
+        report = {
+            "Overall Accuracy": self.__calculate_overall_accuracy(),
+            "Class-wise Metrics": {class_name: self.metrics[class_name] for class_name in self.metrics}
+        }
+        logging.info(f"Generated report: {report}")
+        return report
+
+    def _save_overall_report(self, output_path):
+        report = self.__generate_report()
+        with open(output_path, 'w') as f:
+            json.dump(report, f)
+        logging.info(f"Overall report saved to: {output_path}")
+
 if __name__ == "__main__":
-    model_path = 'minas_flora_classifier_model'
-    eval_path = os.path.join(os.path.dirname(__file__), '..', 'data')
+    model_path = os.path.join(os.path.dirname(__file__), '..', '..', 'models', 'minas_flora_classifier_model')
+    eval_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data')
     
     evaluator = MinasFloraEvaluation(model_path, eval_path)
     logging.info("Evaluation process finished.")
