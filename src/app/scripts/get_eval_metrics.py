@@ -1,6 +1,5 @@
 from src.app.evaluator.eval import MinasFloraEvaluation
 import os 
-import argparse
 
 
 def get_eval_metrics(model_path, eval_path, output_save):

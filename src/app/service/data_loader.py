@@ -12,13 +12,13 @@ class MinasFloraProcessor:
         self.prompts: Dict[str, str] = {}
 
         self._load_prompts()
-        logging.info(f"Processador inicializado com {len(self.prompts)} prompts.")
+        logging.info(f"Processor initialized with {len(self.prompts)} prompts.")
 
     def _load_prompts(self):
-        logging.info(f"Carregando prompts do diretório: {self.prompt_dir}")
+        logging.info(f"Loading prompts from directory: {self.prompt_dir}")
         if not os.path.isdir(self.prompt_dir):
-            logging.error(f"O diretório de prompts não foi encontrado: {self.prompt_dir}")
-            raise FileNotFoundError(f"O diretório de prompts não foi encontrado: {self.prompt_dir}")
+            logging.error(f"Prompt directory not found: {self.prompt_dir}")
+            raise FileNotFoundError(f"Prompt directory not found: {self.prompt_dir}")
 
         for file_name in os.listdir(self.prompt_dir):
             if file_name.endswith('.txt'):
@@ -28,16 +28,16 @@ class MinasFloraProcessor:
                     with open(prompt_path, 'r', encoding='utf-8') as f:
                         prompt_text = f.read().strip()
                         self.prompts[class_label] = prompt_text
-                        logging.info(f"Prompt carregado para a classe '{class_label}'")
+                        logging.info(f"Prompt loaded for class '{class_label}'")
                 except Exception as e:
-                    logging.error(f"Falha ao ler o arquivo de prompt {prompt_path}: {e}")
+                    logging.error(f"Failed to read prompt file {prompt_path}: {e}")
 
     def __len__(self) -> int:
         return len(self.prompts)
 
     def __call__(self, image: Image.Image) -> Tuple[Image.Image, List[str], List[str]]:
         if not self.prompts:
-            logging.warning("Nenhum prompt foi carregado. O processamento pode não funcionar como esperado.")
+            logging.warning("No prompts loaded. Processing may not work as expected.")
             return image, [], []
 
         labels = list(self.prompts.keys())
